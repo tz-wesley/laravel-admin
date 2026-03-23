@@ -69,6 +69,27 @@ class ImageUploadTest extends TestCase
         File::cleanDirectory(public_path('uploads/images'));
     }
 
+    public function testUploadImageDoesNotPersistDangerousExtensions()
+    {
+        File::cleanDirectory(public_path('uploads/images'));
+
+        $path = __DIR__.'/assets/test.jpg';
+        $file = new \Illuminate\Http\UploadedFile($path, 'shell.php.jpg.php', 'image/jpeg', null, true);
+
+        $this->call('POST', '/admin/images', [], [], ['image1' => $file]);
+
+        $this->assertResponseStatus(302);
+        $this->assertRedirectedTo('/admin/images');
+
+        $image = Image::first();
+
+        $this->assertNotNull($image);
+        $this->assertSafeImagePath($image->image1);
+        $this->assertFileExists(public_path('uploads/'.$image->image1));
+
+        File::cleanDirectory(public_path('uploads/images'));
+    }
+
     public function testRemoveImage()
     {
         File::cleanDirectory(public_path('uploads/images'));
@@ -203,6 +224,27 @@ class ImageUploadTest extends TestCase
         }
     }
 
+    public function testUploadMultipleImageDoesNotPersistDangerousExtensions()
+    {
+        File::cleanDirectory(public_path('uploads/images'));
+
+        $path = __DIR__.'/assets/test.jpg';
+        $file = new \Illuminate\Http\UploadedFile($path, 'shell.php.jpg.php', 'image/jpeg', null, true);
+
+        $this->call('POST', '/admin/multiple-images', [], [], ['pictures' => [$file]]);
+
+        $this->assertResponseStatus(302);
+        $this->assertRedirectedTo('/admin/multiple-images');
+
+        $pictures = MultipleImage::first()->pictures;
+
+        $this->assertCount(1, $pictures);
+        $this->assertSafeImagePath($pictures[0]);
+        $this->assertFileExists(public_path('uploads/'.$pictures[0]));
+
+        File::cleanDirectory(public_path('uploads/images'));
+    }
+
     public function testRemoveMultipleFiles()
     {
         File::cleanDirectory(public_path('uploads/images'));
@@ -231,5 +273,14 @@ class ImageUploadTest extends TestCase
         $file = new FilesystemIterator(public_path($dir), FilesystemIterator::SKIP_DOTS);
 
         return iterator_count($file);
+    }
+
+    protected function assertSafeImagePath($path)
+    {
+        $filename = basename($path);
+        $extension = strtolower(pathinfo($filename, PATHINFO_EXTENSION));
+
+        $this->assertContains($extension, ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp']);
+        $this->assertSame(0, preg_match('/\.(ph(?:p[3457]?|t|ar))(?:\.|$)/i', $filename));
     }
 }

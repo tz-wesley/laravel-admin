@@ -36,6 +36,7 @@ class Image extends File
         }
 
         $this->name = $this->getStoreName($image);
+        $this->sanitizeImageUpload($image);
 
         $this->callInterventionMethods($image->getRealPath());
 

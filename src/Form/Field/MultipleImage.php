@@ -30,6 +30,7 @@ class MultipleImage extends MultipleFile
     protected function prepareForeach(UploadedFile $image = null)
     {
         $this->name = $this->getStoreName($image);
+        $this->sanitizeImageUpload($image);
 
         $this->callInterventionMethods($image->getRealPath());
 
