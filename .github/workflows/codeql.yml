@@ -1,0 +1,43 @@
+name: "CodeQL"
+
+on:
+  push:
+    branches: [ "main", "develop" ]  # 在提交到这些分支时触发
+    tags: [ "v*" ]  # 这表示当推送以 v 开头的标签（如 v1.0.1）时触发扫描
+  pull_request:
+    branches: [ "main" ]            # 在提交 PR 时触发
+  schedule:
+    - cron: '30 1 * * 1'            # 每周一自动运行一次
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'php' ]         # 指定扫描语言为 PHP
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    # 初始化 CodeQL
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v2
+      with:
+        languages: ${{ matrix.language }}
+        # 关键设置：增加安全查询强度
+        # 'security-extended' 会扫描更多潜在的逻辑漏洞
+        queries: security-extended,security-and-quality
+
+    # PHP 通常不需要手动构建步骤，CodeQL 会自动提取
+    # 如果你有特殊的编译逻辑，可以在这里添加
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v2
